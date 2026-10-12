@@ -1,0 +1,296 @@
+api/v1/open/dcc/action:
+  description: 通用接口，通过action参数指定具体业务
+  name: custom_action
+  type: post
+  args:
+      action:
+        description: 业务标识
+        type: str
+      args:
+        description: 业务参数
+        type: dict
+        default: {}
+  docs:
+    - task.get_p4_project_code:
+        description: 基于任务ID获取对应P4V工程名
+        status: 已实现
+        args:
+          - task_id: 整数，必传，新kmoke任务ID，大于0
+          - project_kind: 字符串，可选，P4V工程种类，默认project，可选project、scene_asset、preview；preview为兼容值，服务端转换为scene_asset
+          - is_final: 布尔值，可选，旧版兼容参数；true转换为project，false转换为scene_asset
+        returns:
+          - task_id: 整数，任务ID
+          - project_kind: 字符串，解析后的工程种类
+          - p4v_project_id: 整数或null，P4V工程登记ID
+          - software_project_code: 字符串，P4V工程名
+          - software_project_name: 字符串，P4V工程展示名
+          - exists: 布尔值，是否存在工程登记记录
+          - status: 字符串或null，工程登记状态
+          - created_in_p4v: 整数，是否已确认真实P4V工程创建，0否1是
+          - ue_version_name: 字符串或null，UE版本名称
+        notes:
+          - 不创建真实P4V工程
+          - 查不到登记时返回规则计算的建议工程名，exists=false，p4v_project_id=null
+    - task.list_related_assets:
+        description: 基于任务ID获取关联的所有资产信息
+        status: 已完成
+        args:
+          - task_id: 字符串，必传，任务ID
+    - field_record.batch_save_p4v_data:
+        description: 批量记录场记单关联的P4V数据
+        status: 已实现
+        args:
+          - items: 列表，必传，场记单P4V数据列表
+          - items[].project_id: 整数，必传，新kmoke项目ID
+          - items[].record_id: 整数，可选，新kmoke场记单ID
+          - items[].record_guid: 字符串，可选，场记单GUID，优先用于幂等定位
+          - items[].p4v_project_id: 整数，可选，project_p4v_project登记ID
+          - items[].software_project_code: 字符串，必传，P4V工程名
+          - items[].reference_files: 列表，必传，文件路径数据列表
+          - items[].reference_files[].path: 字符串，必传，UE文件路径
+          - items[].reference_files[].file_type: 字符串，可选，文件类型
+          - items[].reference_files[].version: 字符串，可选，文件版本
+        notes:
+          - 同一record_guid和software_project_code重复提交时幂等更新
+          - 不接收source_system、source_project_id、source_sequence_id、source_record_id
+    - render_config.create:
+        description: 创建渲染配置
+        status: 已实现
+        args:
+          - project_id: 整数，必传，项目ID
+          - name: 字符串，必传，渲染配置名称
+          - software: 字符串，必传，软件标识，如Unreal
+          - content: 字典，必传，JSON渲染配置内容
+          - path: 字符串，可选，配置路径
+    - render_config.find:
+        description: 查询渲染配置
+        status: 已实现
+        args:
+          - project_id: 整数，可选，项目ID
+          - software: 字符串，可选，软件标识
+          - status: 字符串，可选，启用状态
+          - name: 字符串，可选，渲染配置名称，支持按名称过滤
+          - page: 整数，可选，页码，默认1
+          - page_size: 整数，可选，每页数量，默认20
+    - render_config.update:
+        description: 更新渲染配置
+        status: 已实现
+        args:
+          - id: 整数，必传，渲染配置ID
+          - name: 字符串，可选，渲染配置名称
+          - content: 字典，可选，JSON渲染配置内容
+          - path: 字符串，可选，配置路径
+          - status: 字符串，可选，启用状态
+    - field_record.list_pending_render_records:
+        description: 获取待渲染场记单数据
+        status: 已实现
+        args:
+          - project_id: 整数，必传，项目ID
+          - project_code: 字符串，可选，项目code，可辅助解析当前项目
+          - base_area: 整数，可选，区域
+          - sequence_name: 字符串，可选，场次名称
+          - project_file_name: 字符串，可选，P4V项目code或UE工程名，可辅助解析当前项目
+          - mode_type: 整数，可选，模式类型
+          - equipment_computer: 字符串，可选，设备或渲染机器标识
+          - page: 整数，可选，页码，默认1
+          - page_size: 整数，可选，每页数量，默认20
+        returns:
+          - id: 整数，场记单ID
+          - guid: 字符串，场记单GUID
+          - project_id: 整数，项目ID
+          - sequence_id: 整数，场次ID
+          - sequence: 字典，场次信息
+          - file_name: 字符串，文件名
+          - shot_file_name: 字符串，镜头文件名
+          - status: 字符串，渲染状态
+          - renders_type: 整数，渲染类型
+          - mode_type: 整数，模式类型
+          - equipment_computer: 字符串，设备或渲染机器标识
+          - field_render_template_id: 整数，渲染模板ID
+          - project_file_name: 字符串，P4V项目code或UE工程名
+          - project_version: 字符串，项目版本
+          - qtm_projectname: 字符串，QTM工程名
+          - qtm_version: 字符串，QTM版本
+          - qtm_data_name: 字符串，QTM数据名
+          - screen_shot: 字符串，截图
+          - date: 字符串，日期
+          - take_sign: 字符串，take标记
+    - field_record.update_render_status:
+        description: 更新场记单的渲染状态
+        status: 已实现
+        args:
+          - guid: 字符串，可选，场记单GUID，优先用于定位
+          - record_id: 整数，可选，新kmoke场记单ID；未传guid时使用
+          - status: 字符串，必传，渲染状态
+          - renders_type: 整数，可选，渲染类型
+          - mode_type: 整数，可选，模式类型
+          - equipment_computer: 字符串，可选，设备或渲染机器标识
+          - field_render_template_id: 整数，可选，渲染模板ID
+        notes:
+          - 优先按guid更新，避免误更新其他场记单
+          - 不接收source_system、source_project_id、source_sequence_id、source_record_id
+    - task.list_related_field_record_ue_files:
+        description: 基于视效任务ID获取关联的所有场记单UE文件数据信息
+        status: 已实现
+        args:
+          - task_id: 整数，必传，视效任务ID
+        returns:
+          - task_id: 整数，任务ID
+          - items: 列表，关联UE文件数据列表
+          - items[].record_id: 整数，场记单ID
+          - items[].record_guid: 字符串，场记单GUID
+          - items[].p4v_project_id: 整数，P4V工程登记ID
+          - items[].path: 字符串，UE文件路径
+          - items[].software_project_code: 字符串，P4V工程名
+          - items[].p4v_status: 字符串，P4V工程登记状态
+          - items[].ue_version_name: 字符串，UE版本名称
+          - items[].file_type: 字符串，文件类型
+          - total: 整数，结果数量
+    - asset.list_related_sequences:
+        description: 基于场景资产ID获取关联的所有场次
+        status: 已完成
+        args:
+          - asset_id: 字符串，必传，场景资产ID
+    - task.create_p4_version:
+        description: 记录当前任务启动P4V时的日期版本
+        status: 已实现
+        args:
+          - task_id: 整数，必传，任务ID
+          - version: 字符串，必传，P4V日期版本
+          - p4v_project_id: 整数，可选，project_p4v_project登记ID
+          - software_project_code: 字符串，必传，P4V工程名
+          - folder_mapping: 字典，可选，文件夹映射JSON
+          - workspace: 字符串，可选，工作空间
+          - file_mapping: 字典，可选，文件映射JSON
+        notes:
+          - 按task_id、software_project_code、version幂等保存
+          - 不创建P4V工程
+    - task.list_p4_versions:
+        description: 基于任务ID获取任务关联的所有P4V版本
+        status: 已实现
+        args:
+          - task_id: 整数，必传，任务ID
+          - p4v_project_id: 整数，可选，project_p4v_project登记ID
+          - software_project_code: 字符串，可选，P4V工程名
+        returns:
+          - id: 整数，版本记录ID
+          - task_id: 整数，任务ID
+          - p4v_project_id: 整数，P4V工程登记ID
+          - version: 字符串，P4V日期版本
+          - software_project_code: 字符串，P4V工程名
+          - workspace: 字符串，工作空间
+          - folder_mapping: 字典，文件夹映射JSON
+          - file_mapping: 字典，文件映射JSON
+          - create_time: 字符串，创建时间
+    - station_room.list:
+        description: 获取所有预演棚信息
+        status: 已完成
+        args: []
+    - user.get_p4_credentials:
+        description: 基于用户ID获取P4V信息
+        status: 已完成
+        args:
+          - user_id: 整数，必传，用户ID
+    - software_publish.create:
+        description: 创建软件工程制作数据发布记录
+        status: 已实现
+        args:
+          - code: 字符串，必传，文件名
+          - version: 整数，必传，版本号
+          - publish_type: 字符串，必传，发布类型
+          - project_id: 整数，必传，项目ID
+          - task_id: 整数，必传，任务ID
+          - entity_type: 字符串，可选，任务关联实体类型
+          - entity_id: 整数，可选，任务关联实体ID
+          - publish_software: 字符串，可选，发布来源软件
+          - file_template: 字符串，可选，文件模板
+          - file_location: 字符串，必传，文件存储桶或根位置
+          - relative_path: 字符串，必传，相对路径
+          - thumbnail: 字符串，可选，缩略图
+          - upstream_file: 字符串，可选，来源文件
+          - description: 字符串，可选，描述
+    - software_publish.find:
+        description: 查询软件工程制作数据发布记录
+        status: 已实现
+        args:
+          - project_id: 整数，可选，项目ID
+          - task_id: 整数，可选，任务ID
+          - entity_type: 字符串，可选，任务关联实体类型
+          - entity_id: 整数，可选，任务关联实体ID
+          - publish_type: 字符串，可选，发布类型
+          - version: 整数，可选，版本号
+          - page: 整数，可选，页码，默认1
+          - page_size: 整数，可选，每页数量，默认20
+        returns:
+          - path: 字符串，按file_location和relative_path计算得到的文件路径
+    - task.submit_review:
+        description: 提交任务审核
+        status: 已实现
+        args:
+          - task_id: 整数，必传，任务ID
+          - operator_id: 整数，必传，操作人ID
+          - comment: 字符串，可选，提交审核说明
+          - attachments: 列表，可选，附件列表，默认为空列表
+        returns:
+          - task_id: 整数，任务ID
+          - review_id: 整数，审核记录ID
+          - status: 字符串，审核状态
+          - existing: 布尔值，是否复用已有待审核记录
+          - submitted_by: 整数，提交人ID
+          - create_time: 字符串，创建时间
+    - field_record.update_qtm_project_info:
+        description: 更新QTM工程信息
+        status: 已实现
+        args:
+          - guid: 字符串，可选，场记单GUID，优先用于定位
+          - record_id: 整数，可选，新kmoke场记单ID；未传guid时使用
+          - qtm_projectname: 字符串，可选，QTM工程名
+          - qtm_version: 字符串，可选，QTM版本
+          - qtm_data_name: 字符串，可选，QTM数据名
+        notes:
+          - 不接收source_system、source_project_id、source_sequence_id、source_record_id
+    - asset_relation.create:
+        description: 新增资产引用/继承关系
+        status: 已完成
+        args:
+          - source_asset_id: 整数，必传，源资产ID
+          - target_asset_id: 整数，必传，目标资产ID
+          - relation_type: 字符串，必传，关系类型，如reference或inherit
+          - remark: 字符串，可选，备注说明
+    - asset_relation.update:
+        description: 更新资产引用/继承关系
+        status: 已完成
+        args:
+          - id: 整数，必传，资产关系ID
+          - source_asset_id: 整数，可选，源资产ID
+          - target_asset_id: 整数，可选，目标资产ID
+          - relation_type: 字符串，可选，关系类型，如reference或inherit
+          - remark: 字符串，可选，备注说明
+    - asset_relation.find:
+        description: 查询资产引用/继承关系
+        status: 已完成
+        args:
+          - source_asset_id: 整数，可选，源资产ID
+          - target_asset_id: 整数，可选，目标资产ID
+          - relation_type: 字符串，可选，关系类型，如reference或inherit
+
+api/v1/open/dcc/assets/sequence-diagrams/save:
+  description: Lookdev 资产当前序列图保存接口
+  name: review_sequence
+  type: post
+  args:
+      asset_id:
+        description: 资产ID
+        type: int
+      diagram_type:
+        description: 序列图类型
+        type: str
+      file_object_ids:
+        description: 相关文件对象ID列表
+        type: list
+      operator_id:
+        description: 操作员ID
+        type: int
+        default: 0
+
+

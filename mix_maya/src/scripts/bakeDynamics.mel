@@ -1,0 +1,370 @@
+global proc bakeDynamics()
+{
+	float $startTime = `playbackOptions -q -min`;
+    float $endTime = `playbackOptions -q -max`;
+
+    string $win = "bakeDynamics_win";
+    if(`window -ex $win`) deleteUI $win;
+    window -t "Bake Dynamics" $win;
+
+    string $form  = `formLayout`;
+    string $frame = `frameLayout -lv 0 -borderStyle "etchedIn"`;
+    string $frameForm = `formLayout`;
+    string $startTimeText = `text -label " Start Time:"`;
+    string $endTimeText = `text -label "   End Time:"`;
+    string $startTimeField = `floatField -value $startTime -pre 2 -w 100 bakeDynamics_startTimeField` ;
+    string $endTimeField = `floatField -value $endTime -pre 2 -w 100 bakeDynamics_endTimeField`;
+
+    setParent $form;
+    string $btn = `button -l "Bake  Selection" -c "bakeDynamicsCmd()"`;
+
+    formLayout -e -af $startTimeText left 10
+    			  -af $startTimeText top 10
+                  -af $startTimeField left 90
+                  -af $startTimeField top 8
+                  -af $endTimeText left 10
+                  -af $endTimeText top 34
+                  -af $endTimeField left 90
+                  -af $endTimeField top 32
+                  $frameForm;
+
+    formLayout -e -af $frame right 0
+    			  -af $frame left 0
+                  -af $frame top 0
+                  -af $frame bottom 30
+                  -af $btn left 0
+                  -af $btn right 0
+                  -af $btn bottom 1
+
+
+                  $form;
+
+    showWindow $win;
+    window -e -w 230 -h 100 $win;
+
+}
+
+
+global proc bakeDynamicsCmd()
+{
+    string $LR[] = {"l","r"} ;
+    string $nameSpace ;
+    string $lr ;
+    float $k[];
+    string $refLongList[] = `file -q -r` ;
+    string $refLong ;
+    string $refShort[] ;
+    string $ref ;
+    string $tokenizeReturn[] ;
+    string $refReturn ;
+    int $i = 0,$n = 0 ;
+    
+    float $startTime = `floatField -q -v bakeDynamics_startTimeField`;
+    float $endTime = `floatField -q -v bakeDynamics_endTimeField`;
+    string $parent[];
+    string $ctrlList[],$ctrlList1[];
+    float $txList[],$tyList[],$tzList[];
+    float $rxList[],$ryList[],$rzList[];
+    
+    for ($refLong in $refLongList){
+        if (`referenceQuery -il $refLong`){
+            $refReturn = `referenceQuery -ns $refLong` ;
+            tokenize $refReturn ":" $tokenizeReturn ;
+            $nameSpace = $tokenizeReturn[0] ;
+            $nameSpace = ($nameSpace + ":") ;
+            ///////////////Secret YII///bocai////////////////////
+            if (size(`match "H:/150701_Secret YII/006_setup/ch/bocai/bocai_st_set.mb" $refLong`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.capDyn")`)
+                    select -add ($nameSpace + "l_maoBian_ctrl2") ($nameSpace + "l_maoBian_ctrl3") ($nameSpace + "r_maoBian_ctrl2") ($nameSpace + "r_maoBian_ctrl3") ;
+                if (`getAttr ($nameSpace + "vis_ctrl.capGlassesDyn")`)
+                    select -add ($nameSpace + "capGlasses_ctrl") ;
+            }
+            ///////////////Kunta2///bocai////////////////////
+            if (size(`match "H:/project_kunta2/006_Setup/ch/bocai/bocai_st_set.mb" $refLong`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.ribbonDyn")`)
+                    select -add ($nameSpace + "l_ribbon_ctrl1") ($nameSpace + "l_ribbon_ctrl2") ($nameSpace + "l_ribbon_ctrl3") ($nameSpace + "l_ribbon_ctrl4") ($nameSpace + "l_ribbon_ctrl5") ($nameSpace + "l_ribbon_ctrl6") ($nameSpace + "r_ribbon_ctrl1") ($nameSpace + "r_ribbon_ctrl2") ($nameSpace + "r_ribbon_ctrl3") ($nameSpace + "r_ribbon_ctrl4") ($nameSpace + "r_ribbon_ctrl5") ($nameSpace + "r_ribbon_ctrl6");
+            }
+            ///////////////naipao////////////////////
+            if (size(`match "naipao_st_set" $nameSpace`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.feederDny")`)
+                    select -add ($nameSpace + "feedingBottle_ctrl") ($nameSpace + "feeder_ctrl");
+            }
+            ///////////////Secret Y///gaga///////////////////
+            if (size(`match "H:/150701_Secret YII/006_setup/ch/gaga/gaga_st_set.mb" $refLong`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.upHairDyn")`){
+                    select -add ($nameSpace + "up_hair_ctrl1") ($nameSpace + "up_hair_ctrl2") ($nameSpace + "up_hair_ctrl3");
+                }
+                if (`getAttr ($nameSpace + "vis_ctrl.upHair1Dyn")`){
+                    select -add ($nameSpace + "l_uphair1_ctrl1") ($nameSpace + "l_uphair1_ctrl2") ($nameSpace + "l_uphair1_ctrl3") ($nameSpace + "l_uphair1_ctrl4");
+                }
+                if (`getAttr ($nameSpace + "vis_ctrl.hairDyn")`){
+                    string $hairList[];
+                    for ($lr in $LR){
+                        for ($i=1;$i<=5;$i++){
+                            for ($j=1;$j<=7;$j++){
+                                $hairList[size($hairList)] = ($nameSpace + $lr + "_hair" + $i + "_ctrl"+$j);
+                            }
+                        }
+                    }
+                    for ($i=1;$i<=7;$i++){
+                        $hairList[size($hairList)] = ($nameSpace + "b_hair_ctrl"+$i);
+                    }
+                    select -add $hairList;
+                }
+                if (`getAttr ($nameSpace + "vis_ctrl.dnHairDyn")`){
+                    string $dnHairList[];
+                    for ($lr in {"dl_hair1","dl_hair2","dr_hair1","dr_hair2","db_hair"}){
+                        for ($i=1;$i<=9;$i++){
+                            $dnHairList[size($dnHairList)] = ($nameSpace + $lr + "_ctrl"+$i);
+                        }
+                    }
+                    select -add $dnHairList;
+                }
+                if (`getAttr ($nameSpace + "vis_ctrl.daiziDyn")`){
+                    string $daiziList[];
+                    for ($lr in $LR){
+                        for ($i=1;$i<=10;$i++){
+                            $daiziList[size($daiziList)] = ($nameSpace + $lr + "_wear_ctrl" + $i);
+                        
+                        }   
+                    }
+                    select -add $daiziList;
+                }
+            }
+            ///////////////Kunta2///gaga////////////////////
+            if (size(`match "H:/project_kunta2/006_Setup/ch/gaga/gaga_st_set.mb" $refLong`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.upHairDyn")`)
+                    select -add ($nameSpace + "upHair_hair_ctrl1") ($nameSpace + "upHair_hair_ctrl2") ($nameSpace + "upHair_hair_ctrl3");
+                if (`getAttr ($nameSpace + "vis_ctrl.dnHairDyn")`)
+                    select -add ($nameSpace + "l_dlHair1_hair_ctrl1") ($nameSpace + "l_dlHair1_hair_ctrl2") ($nameSpace + "l_dlHair1_hair_ctrl3") ($nameSpace + "l_dlHair1_hair_ctrl4") ($nameSpace + "l_dl_hair2_ctrl1") ($nameSpace + "l_dl_hair2_ctrl2") ($nameSpace + "l_dl_hair2_ctrl3") ($nameSpace + "l_dl_hair3_ctrl1") ($nameSpace + "l_dl_hair3_ctrl2") ($nameSpace + "l_dl_hair4_ctrl1") ($nameSpace + "l_dl_hair4_ctrl2") ($nameSpace + "r_dlHair1_hair_ctrl1") ($nameSpace + "r_dlHair1_hair_ctrl2") ($nameSpace + "r_dlHair1_hair_ctrl3") ($nameSpace + "r_dlHair1_hair_ctrl4") ($nameSpace + "r_dl_hair2_ctrl1") ($nameSpace + "r_dl_hair2_ctrl2") ($nameSpace + "r_dl_hair2_ctrl3") ($nameSpace + "r_dl_hair3_ctrl1") ($nameSpace + "r_dl_hair3_ctrl2") ($nameSpace + "r_dl_hair4_ctrl1") ($nameSpace + "r_dl_hair4_ctrl2");
+            }
+            ///////////////tuoniaoche////////////////////////
+            if (size(`match "tuoniaoche_st_set" $nameSpace`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.capDny")`){
+                    select -add ($nameSpace + "l_cap_ctrl1") ($nameSpace + "l_cap_ctrl2") ($nameSpace + "l_cap_ctrl3") ($nameSpace + "l_cap_ctrl4") 
+                                ($nameSpace + "l_cap_ctrl5") ($nameSpace + "r_cap_ctrl1") ($nameSpace + "r_cap_ctrl2") ($nameSpace + "r_cap_ctrl3");
+                }                
+                if (`getAttr ($nameSpace + "vis_ctrl.scarfDny")`){
+                    select -add ($nameSpace + "scarf_up_ctrl1") ($nameSpace + "scarf_up_ctrl2") ($nameSpace + "scarf_up_ctrl3") ($nameSpace + "scarf_up_ctrl4")
+                                ($nameSpace + "scarf_dn_ctrl1") ($nameSpace + "scarf_dn_ctrl2") ($nameSpace + "scarf_dn_ctrl3") ($nameSpace + "scarf_dn_ctrl4");
+                }
+            }
+    
+            ///////////////zhanglao/////////////////////////
+            if (size(`match "zhanglao_st_set" $nameSpace`)){
+                deleKey($nameSpace,$startTime) ;
+                if (`getAttr ($nameSpace + "vis_ctrl.huziDynamic")`){
+                    select -add ($nameSpace + "r_upperHuzi_ctrl1") ($nameSpace + "r_upperHuzi_ctrl2") ($nameSpace + "r_upperHuzi_ctrl3") 
+                                ($nameSpace + "l_upperHuzi_ctrl1") ($nameSpace + "l_upperHuzi_ctrl2") ($nameSpace + "l_upperHuzi_ctrl3") 
+                                ($nameSpace + "lowerHuzi_ctrl1") ($nameSpace + "lowerHuzi_ctrl2") ($nameSpace + "lowerHuzi_ctrl3") ;
+                }
+                if (`getAttr ($nameSpace + "vis_ctrl.piaodaiDynamic")`){
+                    select -add ($nameSpace + "LF_daizil_ctrl1") ($nameSpace + "LF_daizil_ctrl2") ($nameSpace + "LF_daizil_ctrl3") 
+                                ($nameSpace + "RF_daizil_ctrl1") ($nameSpace + "RF_daizil_ctrl2") ($nameSpace + "RF_daizil_ctrl3") 
+                                ($nameSpace + "LB_daizil_ctrl1") ($nameSpace + "LB_daizil_ctrl2") ($nameSpace + "LB_daizil_ctrl3") 
+                                ($nameSpace + "RB_daizil_ctrl1") ($nameSpace + "RB_daizil_ctrl2") ($nameSpace + "RB_daizil_ctrl3") ;
+                }
+            }
+        }
+    }
+
+    
+    string $sel[] = `ls -sl`;
+    
+
+    $i = 0;
+    $n = 0;
+    for ($each in $sel)
+    {
+        $parent = `listRelatives -parent $each`;
+        if(size($parent) == 1)
+            {
+                if(substituteAllString($parent[0],$each,"") == "_dynGrp")
+                		{
+    							$ctrlList[$i] = $each;
+                            $i++;
+                         }
+		if(substituteAllString($parent[0],$each,"") == "_waveGrp")
+                		{
+    							$ctrlList1[$n] = $each;
+                            $n++;
+                         }
+
+            }
+
+    }
+
+    if ($i > 0){
+       $i = 0;
+       for ($j=$startTime;$j<=$endTime;$j++)
+       {
+           currentTime $j;
+           for ($each in $ctrlList)
+            {
+
+
+           float $childR[] = `getAttr ($each +".r")`;
+           $parent = `listRelatives -parent $each`;
+           float $parentR[] = `getAttr ($parent[0] +".r")`;
+           $rxList[$i] =  $childR[0] +  $parentR[0];
+           $ryList[$i] =  $childR[1] +  $parentR[1];
+           $rzList[$i] =  $childR[2] +  $parentR[2];
+           $i++;
+                }
+
+     }
+
+
+     $i = 0;
+     for ($j=$startTime;$j<=$endTime;$j++)
+     {
+        for ($each in $ctrlList)
+        		{
+                   setKeyframe -t $j -at rx -v $rxList[$i] $each;
+                   setKeyframe -t $j -at ry -v $ryList[$i] $each;
+                   setKeyframe -t $j -at rz -v $rzList[$i] $each;
+                   $i++;
+                }
+             }
+    }
+    if ($n > 0){
+        $n = 0;
+       for ($j=$startTime;$j<=$endTime;$j++)
+       {
+           currentTime $j;
+           for ($each in $ctrlList1)
+            {
+
+	           float $childT[] = `getAttr ($each +".t")`;
+               float $childR[] = `getAttr ($each +".r")`;
+               $parent = `listRelatives -parent $each`;
+               float $parentT[] = `getAttr ($parent[0] +".t")`;
+               float $parentR[] = `getAttr ($parent[0] +".r")`;
+	       $txList[$n] =  $childT[0] +  $parentT[0];
+           $tyList[$n] =  $childT[1] +  $parentT[1];
+           $tzList[$n] =  $childT[2] +  $parentT[2];
+           $rxList[$n] =  $childR[0] +  $parentR[0];
+           $ryList[$n] =  $childR[1] +  $parentR[1];
+           $rzList[$n] =  $childR[2] +  $parentR[2];
+           $n++;
+           }
+
+     }
+
+
+     $n = 0;
+     for ($j=$startTime;$j<=$endTime;$j++)
+     {
+        for ($each in $ctrlList1)
+        		{
+                   setKeyframe -t $j -at tx -v $txList[$n] $each;
+                   setKeyframe -t $j -at ty -v $tyList[$n] $each;
+                   setKeyframe -t $j -at tz -v $tzList[$n] $each;
+		           setKeyframe -t $j -at rx -v $rxList[$n] $each;
+                   setKeyframe -t $j -at ry -v $ryList[$n] $each;
+                   setKeyframe -t $j -at rz -v $rzList[$n] $each;
+                   $n++;
+                }
+         }
+    }
+    for ($refLong in $refLongList){
+        if (`referenceQuery -il $refLong`){
+            $refReturn = `referenceQuery -ns $refLong` ;
+            tokenize $refReturn ":" $tokenizeReturn ;
+            $nameSpace = $tokenizeReturn[0] ;
+            $nameSpace = ($nameSpace + ":") ;
+        
+            if (`objExists ($nameSpace + "point_ctrl.envelope")`){
+            
+                $k = `keyframe -q -tc ($nameSpace + "point_ctrl.envelope")`;
+                    if (size($k) > 0)
+                        cutKey -clear ($nameSpace + "point_ctrl.envelope") ;
+                    setAttr ($nameSpace + "point_ctrl.envelope") 0 ;
+                
+                $k = `keyframe -q -tc ($nameSpace + "point_ctrl.footDyn")`;
+                    if (size($k) > 0)
+                        cutKey -clear ($nameSpace + "point_ctrl.footDyn") ;
+                    setAttr ($nameSpace + "point_ctrl.footDyn") 0 ;
+                
+            }
+                
+            if (size(`match "H:/150701_Secret YII/006_setup/ch/bocai/bocai_st_set.mb" $refLong`)){
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.capDyn")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.capDyn") ;
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.capGlassesDyn")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.capGlassesDyn") ;
+                setAttr ($nameSpace + "vis_ctrl.capDyn") 0 ;
+                setAttr ($nameSpace + "vis_ctrl.capGlassesDyn") 0 ;
+            }
+        
+        
+            if (size(`match "H:/project_kunta2/006_Setup/ch/bocai/bocai_st_set.mb" $refLong`)){
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.ribbonDyn")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.ribbonDyn") ;
+                setAttr ($nameSpace + "vis_ctrl.ribbonDyn") 0 ;
+            }
+        
+        
+            if (size(`match "naipao_st_set" $nameSpace`)){
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.feederDny")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.feederDny") ;
+                setAttr ($nameSpace + "vis_ctrl.feederDny") 0 ;
+            }
+            if (size(`match "H:/150701_Secret YII/006_setup/ch/gaga/gaga_st_set.mb" $refLong`)){
+                for ($attr in {"upHairDyn","upHair1Dyn","hairDyn","dnHairDyn","daiziDyn"}){
+                    $k = `keyframe -q -tc ($nameSpace + "vis_ctrl." + $attr)`;
+                    if (size($k) > 0)
+                        cutKey -clear ($nameSpace + "vis_ctrl." + $attr) ;
+                    setAttr ($nameSpace + "vis_ctrl." + $attr) 0 ;
+                }
+            }
+            if (size(`match "H:/project_kunta2/006_Setup/ch/gaga/gaga_st_set.mb" $refLong`)){
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.upHairDyn")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.upHairDyn") ;
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.dnHairDyn")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.dnHairDyn") ;
+                setAttr ($nameSpace + "vis_ctrl.upHairDyn") 0 ;
+                setAttr ($nameSpace + "vis_ctrl.dnHairDyn") 0 ;
+            }
+        
+            if (size(`match "tuoniaoche_st_set" $nameSpace`)){
+                for ($attr in {"capDny","scarfDny"}){
+                    $k = `keyframe -q -tc ($nameSpace + "vis_ctrl." + $attr)`;
+                    if (size($k) > 0)
+                        cutKey -clear ($nameSpace + "vis_ctrl." + $attr) ;
+                    setAttr ($nameSpace + "vis_ctrl." + $attr) 0 ;
+                }
+            }
+            if (size(`match "zhanglao_st_set" $nameSpace`)){
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.huziDynamic")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.huziDynamic") ;
+                $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.piaodaiDynamic")`;
+                if (size($k) > 0)
+                    cutKey -clear ($nameSpace + "vis_ctrl.piaodaiDynamic") ;
+                setAttr ($nameSpace + "vis_ctrl.huziDynamic") 0 ;
+                setAttr ($nameSpace + "vis_ctrl.piaodaiDynamic") 0 ;
+            }
+        }
+    }
+}
+
+global proc deleKey(string $nameSpace, float $startTime){ 
+    float $k[];
+    $k = `keyframe -q -tc ($nameSpace + "vis_ctrl.startFrame")`;
+    if (size($k) > 0)
+        cutKey -clear ($nameSpace + "vis_ctrl.startFrame") ;
+    setAttr ($nameSpace + "vis_ctrl.startFrame") $startTime ;
+}

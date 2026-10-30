@@ -100,23 +100,21 @@ def get_samba_path(in_path, location):
         relative_path=relative_path)
 
 # Functions in alphabetical order
-def change_task(id):
-    """切换任务
+def change_task(task_or_id):
+    """切换任务 (Decision 1A)
     
-    根据任务ID切换当前工作任务。会获取任务的上下文信息并更新当前引擎的上下文。
+    根据任务ID或任务数据字典切换当前工作任务，更新上下文并即时刷新 Maya 顶部菜单。
     
     Args:
-        id (int): 任务ID，用于标识要切换到的目标任务
-        
-    Example:
-        >>> change_task(123) # 切换到ID为123的任务
-        
-    注意:
-        - 需要确保传入的任务ID是有效的
-        - 切换任务会影响当前工作环境的上下文
+        task_or_id (int|str|dict): 任务ID或任务上下文数据字典
     """
     engine = get_current_engine()
-    ctx_data = APP.get_task_context(id)
+    if isinstance(task_or_id, dict):
+        ctx_data = task_or_id
+    elif hasattr(task_or_id, 'to_dict'):
+        ctx_data = task_or_id.to_dict()
+    else:
+        ctx_data = APP.get_task_context(task_or_id)
     engine.set_context(ctx_data)
 
 def check_fields_all_by_context(fields, context):
@@ -1073,35 +1071,11 @@ def get_version_str(version):
     keys_data = PROJECT_TEMPLATE.get('keys', {})
     return keys_data['version']['format_spec'].format(int(version))
 
-@error_decorator
-def initialize_plugin(plugin_code):
-    """初始化插件属性及配置
-    """
-    result = {}
-    if SOFTWARE_ID:# or TOOL_ID:
-        # if SOFTWARE_ID:
-        #     plugin_data = APP.get_plugin_attr_and_config(
-        #         SOFTWARE_ID, PROJECT_ID, plugin_code)
-        # else:
-        #     plugin_data = APP.get_tool_plugin_attr_and_config(plugin_code)
-        plugin_data = APP._get_plugin_attrs_config(plugin_code)
-        if plugin_data:
-            attr_list = plugin_data.get('attrs', [])
-            if attr_list:
-                for attr in attr_list:
-                    result[attr['code']] = load_script(attr)
-            config_data = plugin_data.get('config', [])
-            if config_data:
-                loader = _IncludeLoader
-                loader.plugin = plugin_code
-                result['PLUGIN_CONFIG'] = yaml.load(config_data['content'], loader)
-    scripts_data = APP._get_plugin_scripts(plugin_code)
-    if scripts_data:
-        scripts = {}
-        for script in scripts_data:
-            scripts[script['code'].lower()] = script
-        result['SCRIPTS'] = scripts
-    return result
+def initialize_plugin(plugin_code, **kwargs):
+    """Load selected plugin runtime data, with an inspectable status report."""
+    from .plugin_runtime import initialize_plugin as initialize
+    kwargs.setdefault('legacy_app', APP)
+    return initialize(plugin_code, **kwargs)
 
 @error_decorator
 def register_publish(

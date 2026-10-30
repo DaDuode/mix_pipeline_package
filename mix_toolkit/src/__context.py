@@ -20,16 +20,28 @@ class Context(object):
         __data (dict): 存储上下文数据的内部字典
     """
     
-    def __init__(self, data={}):
+    def __init__(self, data=None):
         """
         初始化上下文实例
         
         Args:
             data (dict): 初始化数据字典，默认为空字典
         """
-        self.__data = copy.deepcopy(data)  # 深拷贝确保数据独立性
-        for _key in data:
-            self.__dict__[_key] = data[_key]  # 将数据映射为实例属性
+        if data is not None and not isinstance(data, dict):
+            raise TypeError('Context data must be a dictionary')
+        self.__data = copy.deepcopy(data or {})
+
+    def __getattr__(self, key):
+        data = self.__dict__.get('_Context__data', {})
+        if key in data:
+            return data[key]
+        raise AttributeError(key)
+
+    def __setattr__(self, key, value):
+        if key.startswith('_'):
+            object.__setattr__(self, key, value)
+        else:
+            self.update_key(key, value)
 
     def set_entity(self, entity_type, entity_data):
         """
@@ -39,7 +51,7 @@ class Context(object):
             entity_type (str): 实体类型
             entity_data (dict): 实体数据
         """
-        self.__data[entity_type] = entity_data
+        self.update_key(entity_type, entity_data)
 
     def update_key(self, key, data):
         """

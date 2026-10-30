@@ -57,8 +57,5 @@ class SingleAPP():
 
 
 def get_app(*args, **kwargs):
-    """获取kmoke api实例
-    Returns:
-        Kmoke: 
-    """
+
     return SingleAPP(*args, **kwargs).sdk

@@ -8,7 +8,7 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-DCC_APP_CODE = os.environ.get('DCC_APP_CODE').upper()
+DCC_APP_CODE = (os.environ.get('DCC_APP_CODE') or 'MIX').upper()
 
 class DCCLogger(object):
     """

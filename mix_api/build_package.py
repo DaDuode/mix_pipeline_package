@@ -17,7 +17,10 @@ requires = []
 '''
     commands = '''
 def commands():
+    import os
     env.PYTHONPATH.append("{root}")
+    if os.environ.get("DCC_PYTHON_LIBS"):
+        env.PYTHONPATH.append(os.environ["DCC_PYTHON_LIBS"])
 '''
     current_root = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
     build_root = os.path.join(current_root, 'build').replace('\\', '/')

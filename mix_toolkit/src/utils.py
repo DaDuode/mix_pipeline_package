@@ -11,6 +11,8 @@ import imp
 import uuid
 import os
 import tempfile
+import types
+import linecache
 from .logger import error_decorator
 
 
@@ -34,12 +36,9 @@ def import_hook(hook_file):
     return imp.load_source(uuid.uuid4().hex, hook_file)
 
 
-@error_decorator
-def load_script(script, is_uuid=True):
+def load_script(script, is_uuid=True, package=None):
     """
-    从字典数据加载并导入Python脚本
-    
-    将脚本内容写入临时文件并导入为模块，支持Python2和Python3
+    从字典数据编译独立模块，可指定属性脚本的相对导入包。
     
     Args:
         script (dict): 包含脚本信息的字典，必须包含'content'键
@@ -48,31 +47,29 @@ def load_script(script, is_uuid=True):
     Returns:
         module: 加载的脚本模块对象
         
-    Note:
-        - 脚本内容会被写入临时文件
-        - 临时文件会在进程结束时自动清理
-        - Python2和Python3使用不同的编码处理方式
+    不写临时脚本文件；加载失败由调用方记录状态，避免自动输出脚本内容。
     """
-    # 生成模块名
-    if is_uuid:
-        _name = uuid.uuid4().hex
-    else:
-        _name = script['code']
-        
-    # 创建临时文件
-    tf, tmpfile = tempfile.mkstemp(suffix=".data", prefix="tanktmp")
-    if tf:
-        os.close(tf)
-        
-    # 根据Python版本使用不同的编码处理
-    if sys.version.startswith('2.'):
-        with open(tmpfile, 'w') as f:
-            f.write(script['content'].encode('utf-8'))
-        return imp.load_source(uuid.uuid4().hex, tmpfile)
-    else:
-        with open(tmpfile, 'w', encoding='utf-8') as f:
-            f.write(script['content'])
-        return imp.load_source(_name, tmpfile)
+    name = uuid.uuid4().hex if is_uuid else script['code']
+    filename = '<mix-script:{}:{}>'.format(script.get('code', name), name)
+    content = script.get('content') or ''
+    if not isinstance(content, str):
+        raise TypeError('Script content must be text')
+    module = types.ModuleType(name)
+    module.__file__ = filename
+    module.__package__ = package or ''
+    linecache.cache[filename] = (len(content), None, content.splitlines(True), filename)
+    previous = sys.modules.get(name)
+    sys.modules[name] = module
+    try:
+        exec(compile(content, filename, 'exec'), module.__dict__)
+    except BaseException:
+        if previous is not None:
+            sys.modules[name] = previous
+        else:
+            sys.modules.pop(name, None)
+        linecache.cache.pop(filename, None)
+        raise
+    return module
 
 
 def singleton(cls, *args, **kwargs):
